@@ -24,8 +24,6 @@ TEST_SUITE(TrickyLock) {
       size_t thread_count = 0;
 
       auto contender = [&]() {
-        // Put Yield-s to produce livelock
-
         for (size_t i = 0; i < kIterations; ++i) {
           // TrickyLock::Lock
           while (thread_count++ > 0) {
