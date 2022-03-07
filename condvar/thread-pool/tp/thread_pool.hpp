@@ -4,6 +4,7 @@
 #include <tp/task.hpp>
 
 #include <twist/stdlike/thread.hpp>
+#include <twist/stdlike/atomic.hpp>
 #include <vector>
 
 namespace tp {
@@ -41,8 +42,8 @@ class ThreadPool {
  private:
   std::vector<twist::stdlike::thread> workers_;
   UnboundedBlockingQueue<Task> task_queue_;
-  std::atomic<uint32_t> count_tasks_;
-  std::atomic<uint32_t> is_stopped_;
+  twist::stdlike::atomic<uint32_t> count_tasks_;
+  twist::stdlike::atomic<uint32_t> is_stopped_;
 };
 
 inline ThreadPool* Current() {
