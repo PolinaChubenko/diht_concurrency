@@ -58,7 +58,7 @@ void ThreadPool::WorkerRoutine() {
 }
 
 void ThreadPool::JoinWorkerThreads() {
-  for (auto& worker : workers_) {
+  for (auto&& worker : workers_) {
     if (worker.joinable()) {
       worker.join();
     }
@@ -69,7 +69,7 @@ void ThreadPool::Invoke(Task& task) {
   try {
     task();
   } catch (...) {
-    std::cout << "Task is invalid.\n";
+    std::cout << "Task is invalid\n";
   }
 }
 
