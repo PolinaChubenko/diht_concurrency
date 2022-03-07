@@ -34,11 +34,15 @@ class ThreadPool {
 
  private:
   void StartWorkerThreads(size_t count);
+  void JoinWorkerThreads();
+  void Invoke(Task& task);
   void WorkerRoutine();
 
  private:
   std::vector<twist::stdlike::thread> workers_;
   UnboundedBlockingQueue<Task> task_queue_;
+  std::atomic<uint32_t> count_tasks_;
+  std::atomic<uint32_t> is_stopped_;
 };
 
 inline ThreadPool* Current() {
