@@ -42,8 +42,8 @@ class ThreadPool {
  private:
   std::vector<twist::stdlike::thread> workers_;
   UnboundedBlockingQueue<Task> task_queue_;
-  twist::stdlike::atomic<uint32_t> count_tasks_;
-  twist::stdlike::atomic<uint32_t> is_stopped_;
+  twist::stdlike::atomic<size_t> count_tasks_{0};
+  twist::stdlike::atomic<size_t> is_stopped_{0};
 };
 
 inline ThreadPool* Current() {

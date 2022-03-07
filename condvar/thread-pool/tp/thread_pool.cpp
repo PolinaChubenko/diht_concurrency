@@ -15,7 +15,6 @@ ThreadPool::ThreadPool(size_t workers) {
 }
 
 ThreadPool::~ThreadPool() {
-  //  assert(workers_.empty());
   assert(is_stopped_.load());
 }
 
@@ -31,7 +30,7 @@ void ThreadPool::WaitIdle() {
 }
 
 void ThreadPool::Stop() {
-  uint32_t only_once = 0;
+  size_t only_once = 0;
   if (is_stopped_.compare_exchange_strong(only_once, 1)) {
     task_queue_.Cancel();
     JoinWorkerThreads();
