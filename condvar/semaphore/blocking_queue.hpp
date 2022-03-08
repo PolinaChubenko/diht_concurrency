@@ -12,35 +12,43 @@ template <typename T>
 class BlockingQueue {
  public:
   explicit BlockingQueue(size_t capacity)
-      : capacity_(capacity), size_(0), control_loneliness_(1) {
+      : capacity_(capacity), size_(0), is_locked_(1) {
   }
 
   // Inserts the specified element into this queue,
   // waiting if necessary for space to become available.
   void Put(T element) {
-    capacity_.Acquire();
-    control_loneliness_.Acquire();
-    size_.Release();
+    auto cap_token = capacity_.Acquire();
+
+    auto lock_token = is_locked_.Acquire();
     deque_.emplace_back(std::move(element));
-    control_loneliness_.Release();
+    is_locked_.Release(std::move(lock_token));
+
+    size_.Release(std::move(cap_token));
   }
 
   // Retrieves and removes the head of this queue,
   // waiting if necessary until an element becomes available
   T Take() {
-    size_.Acquire();
-    control_loneliness_.Acquire();
-    auto element = std::move(deque_[0]);
+    auto size_token = size_.Acquire();
+
+    auto lock_token = is_locked_.Acquire();
+    auto element = std::move(deque_.front());
     deque_.pop_front();
-    control_loneliness_.Release();
-    capacity_.Release();
+    is_locked_.Release(std::move(lock_token));
+
+    capacity_.Release(std::move(size_token));
     return element;
   }
 
  private:
-  Semaphore capacity_;
-  Semaphore size_;
-  Semaphore control_loneliness_;
+  struct Tag {};
+  TaggedSemaphore<Tag> capacity_;
+  TaggedSemaphore<Tag> size_;
+
+  struct LockTag {};
+  TaggedSemaphore<LockTag> is_locked_;
+
   std::deque<T> deque_;
 };
 
