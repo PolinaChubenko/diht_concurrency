@@ -15,25 +15,24 @@ ThreadPool::ThreadPool(size_t workers) {
 }
 
 ThreadPool::~ThreadPool() {
-  assert(is_stopped_.load());
+  assert(workers_.empty());
 }
 
 void ThreadPool::Submit(Task task) {
-  if (task_queue_.Put(std::move(task))) {
-    count_tasks_.fetch_add(1);
-  }
+  no_tasks_.store(0);
+  count_tasks_.fetch_add(1);
+  task_queue_.Put(std::move(task));
 }
 
 void ThreadPool::WaitIdle() {
-  while (count_tasks_.load() != 0) {
-  }
+  no_tasks_.FutexWait(0);
 }
 
 void ThreadPool::Stop() {
-  size_t only_once = 0;
-  if (is_stopped_.compare_exchange_strong(only_once, 1)) {
+  if (!workers_.empty()) {
     task_queue_.Cancel();
     JoinWorkerThreads();
+    workers_.clear();
   }
 }
 
@@ -47,13 +46,16 @@ void ThreadPool::StartWorkerThreads(size_t count) {
 }
 
 void ThreadPool::WorkerRoutine() {
-  while (is_stopped_.load() == 0) {
+  while (true) {
     auto task = task_queue_.Take();
     if (!task.has_value()) {
       break;
     }
     Invoke(task.value());
-    count_tasks_.fetch_sub(1);
+    if (count_tasks_.fetch_sub(1) == 1) {
+      no_tasks_.store(1);
+      no_tasks_.notify_all();
+    }
   }
 }
 
