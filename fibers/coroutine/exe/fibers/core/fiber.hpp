@@ -10,6 +10,8 @@ namespace exe::fibers {
 
 class Fiber {
  public:
+  Fiber(Scheduler& scheduler, Routine routine);
+  ~Fiber();
   // ~ System calls
   void Schedule();
   void Yield();
@@ -21,7 +23,9 @@ class Fiber {
   void Step();
 
  private:
-  // ???
+  Scheduler* scheduler_;
+  context::Stack stack_;
+  coroutine::CoroutineImpl coroutine_;
 };
 
 }  // namespace exe::fibers

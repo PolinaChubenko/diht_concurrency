@@ -1,5 +1,9 @@
 #include <exe/fibers/core/stacks.hpp>
 
+#include <twist/stdlike/mutex.hpp>
+#include <optional>
+#include <vector>
+
 using context::Stack;
 
 namespace exe::fibers {
@@ -9,11 +13,15 @@ namespace exe::fibers {
 class StackAllocator {
  public:
   Stack Allocate() {
-    return AllocateNewStack();  // No impl
+    if (auto stack = TryTakeFromPool()) {
+      return std::move(*stack);
+    }
+    return AllocateNewStack();
   }
 
-  void Release(Stack /*stack*/) {
-    // No impl
+  void Release(Stack stack) {
+    std::lock_guard guard_lock(mutex_);
+    pool_.push_back(std::move(stack));
   }
 
  private:
@@ -22,8 +30,19 @@ class StackAllocator {
     return Stack::AllocatePages(kStackPages);
   }
 
+  std::optional<Stack> TryTakeFromPool() {
+    std::lock_guard guard_lock(mutex_);
+    if (pool_.empty()) {
+      return std::nullopt;
+    }
+    Stack stack = std::move(pool_.back());
+    pool_.pop_back();
+    return stack;
+  }
+
  private:
-  // Pool
+  twist::stdlike::mutex mutex_;
+  std::vector<Stack> pool_;
 };
 
 //////////////////////////////////////////////////////////////////////

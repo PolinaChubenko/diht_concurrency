@@ -2,43 +2,69 @@
 #include <exe/fibers/core/stacks.hpp>
 
 #include <twist/util/thread_local.hpp>
+#include <exe/tp/submit.hpp>
 
 namespace exe::fibers {
 
+twist::util::ThreadLocalPtr<Fiber> local_fiber;
+
 //////////////////////////////////////////////////////////////////////
 
+Fiber::Fiber(Scheduler& scheduler, Routine routine)
+    : scheduler_(&scheduler),
+      stack_(AllocateStack()),
+      coroutine_(std::move(routine), stack_.View()) {
+}
+
+Fiber::~Fiber() {
+  ReleaseStack(std::move(stack_));
+}
+
 void Fiber::Schedule() {
-  // No impl
+  tp::Submit(*scheduler_, [this]() {
+    fibers::local_fiber = this;
+    Step();
+  });
 }
 
 void Fiber::Yield() {
-  // No impl
+  coroutine_.Suspend();
 }
 
 void Fiber::Step() {
-  // No impl
+  try {
+    this->coroutine_.Resume();
+  } catch (...) {
+    return;
+  }
+  if (this->coroutine_.IsCompleted()) {
+    this->~Fiber();
+  } else {
+    Schedule();
+  }
 }
 
 Fiber& Fiber::Self() {
-  std::abort();  // No impl
+  return *local_fiber;
 }
 
 //////////////////////////////////////////////////////////////////////
 
 // API Implementation
 
-void Go(Scheduler& /*scheduler*/, Routine /*routine*/) {
-  // No impl
+void Go(Scheduler& scheduler, Routine routine) {
+  Fiber fiber(scheduler, std::move(routine));
+  fiber.Schedule();
 }
 
-void Go(Routine /*routine*/) {
-  // No impl
+void Go(Routine routine) {
+  Go(*Scheduler::Current(), std::move(routine));
 }
 
 namespace self {
 
 void Yield() {
-  // No impl
+  Fiber::Self().Yield();
 }
 
 }  // namespace self
