@@ -17,8 +17,7 @@ void CoroutineImpl::Run() {
     error_ptr_ = std::current_exception();
   }
   is_routine_complete_ = true;
-  context_routine_.SwitchTo(context_main_);
-  std::abort();
+  context_routine_.ExitTo(context_main_);
 }
 
 void CoroutineImpl::Resume() {

@@ -7,7 +7,6 @@
 
 namespace exe::coroutine {
 
-// static thread_local SimpleCoroutine* current = nullptr;
 static twist::util::ThreadLocalPtr<Coroutine> current;
 
 Coroutine::Coroutine(Routine routine)
