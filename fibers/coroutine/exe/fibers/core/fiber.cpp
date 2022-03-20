@@ -35,10 +35,11 @@ void Fiber::Step() {
   try {
     this->coroutine_.Resume();
   } catch (...) {
+    std::cout << "Caught exception from coroutine\n";
     return;
   }
   if (this->coroutine_.IsCompleted()) {
-    this->~Fiber();
+    delete this;
   } else {
     Schedule();
   }
@@ -53,8 +54,8 @@ Fiber& Fiber::Self() {
 // API Implementation
 
 void Go(Scheduler& scheduler, Routine routine) {
-  Fiber fiber(scheduler, std::move(routine));
-  fiber.Schedule();
+  auto fiber = new Fiber(scheduler, std::move(routine));
+  fiber->Schedule();
 }
 
 void Go(Routine routine) {
