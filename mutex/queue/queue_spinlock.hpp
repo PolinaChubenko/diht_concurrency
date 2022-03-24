@@ -33,30 +33,37 @@ class QueueSpinLock {
    private:
     QueueSpinLock& spinlock_;
     twist::stdlike::atomic<Guard*> next_{nullptr};
-    twist::stdlike::atomic<uint32_t> owner_{0};
+    twist::stdlike::atomic<bool> owner_{false};
   };
 
  private:
   void Acquire(Guard* node) {
-    auto* prev_tail = tail_.exchange(node);
-    if (prev_tail != nullptr) {
-      prev_tail->next_.store(node);
+    twist::stdlike::atomic<Guard*> prev_tail{tail_.exchange(node)};
+    if (prev_tail.load() != nullptr) {
+      prev_tail.load()->next_.store(node);
       twist::util::SpinWait spin_wait;
-      while (node->owner_.load() == 0) {
+      while (!node->owner_.load()) {
         spin_wait();
       }
     } else {
-      (*tail_).owner_.store(1);
+      tail_.load()->owner_.store(true);
     }
   }
 
   void Release(Guard* node) {
-    node->owner_.store(0);
-    if (node->next_ != nullptr) {
-      (*node->next_).owner_.store(1);
-    } else {
-      tail_.store(nullptr);
+    if (node->next_.load() == nullptr) {
+      auto copy = node;
+      if (tail_.compare_exchange_strong(copy, nullptr)) {
+        //        node->owner_.store(0);
+        return;
+      }
+      twist::util::SpinWait spin_wait;
+      while (node->next_.load() == nullptr) {
+        spin_wait();
+      }
     }
+    node->owner_.store(false);
+    node->next_.load()->owner_.store(true);
   }
 
  private:
