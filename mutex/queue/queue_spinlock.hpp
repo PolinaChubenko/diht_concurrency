@@ -31,6 +31,21 @@ class QueueSpinLock {
     }
 
    private:
+    void Freedom() {
+      twist::util::SpinWait spin_wait;
+      while (!owner_.load()) {
+        spin_wait();
+      }
+    }
+
+    void Connection() {
+      twist::util::SpinWait spin_wait;
+      while (next_.load() == nullptr) {
+        spin_wait();
+      }
+    }
+
+   private:
     QueueSpinLock& spinlock_;
     twist::stdlike::atomic<Guard*> next_{nullptr};
     twist::stdlike::atomic<bool> owner_{false};
@@ -41,10 +56,7 @@ class QueueSpinLock {
     Guard* prev_tail = tail_.exchange(node);
     if (prev_tail != nullptr) {
       prev_tail->next_.store(node);
-      twist::util::SpinWait spin_wait;
-      while (!node->owner_.load()) {
-        spin_wait();
-      }
+      node->Freedom();
     } else {
       node->owner_.store(true);
     }
@@ -56,10 +68,7 @@ class QueueSpinLock {
       if (tail_.compare_exchange_strong(copy, nullptr)) {
         return;
       }
-      twist::util::SpinWait spin_wait;
-      while (node->next_.load() == nullptr) {
-        spin_wait();
-      }
+      node->Connection();
     }
     node->next_.load()->owner_.store(true);
   }
