@@ -5,6 +5,8 @@
 
 #include <context/stack.hpp>
 
+#include <twist/stdlike/atomic.hpp>
+
 namespace exe::fibers {
 
 // Fiber = Stackful coroutine + Scheduler
@@ -14,7 +16,7 @@ class Fiber {
     Starting,
     Running,
     Runnable,
-    Suspendable,
+    //    Suspendable,
     Suspended,
     Terminated
   };
@@ -48,6 +50,7 @@ class Fiber {
   context::Stack stack_;
   coroutine::CoroutineImpl coroutine_;
   FiberState state_;
+  twist::stdlike::atomic<bool> is_suspended_{false};
 };
 
 }  // namespace exe::fibers

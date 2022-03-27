@@ -2,7 +2,7 @@
 #include <exe/fibers/core/stacks.hpp>
 
 #include <twist/util/thread_local.hpp>
-#include <wheels/support/cpu.hpp>
+#include <twist/util/spin_wait.hpp>
 
 #include <asio/steady_timer.hpp>
 #include <asio/post.hpp>
@@ -48,14 +48,17 @@ void Fiber::SleepFor(Millis delay) {
 }
 
 void Fiber::Suspend() {
-  SetState(FiberState::Suspendable);
+  is_suspended_.store(false);
+  SetState(FiberState::Suspended);
   coroutine_.Suspend();
 }
 
 void Fiber::Resume() {
-  while (State() != FiberState::Suspended) {
-    wheels::SpinLockPause();
+  twist::util::SpinWait spin_wait;
+  while (!is_suspended_.load()) {
+    spin_wait();
   }
+  is_suspended_.store(false);
   SetState(FiberState::Runnable);
   Schedule();
 }
@@ -79,8 +82,9 @@ void Fiber::Dispatch() {
     case FiberState::Runnable:
       Schedule();
       break;
-    case FiberState::Suspendable:
-      SetState(FiberState::Suspended);
+    case FiberState::Suspended:
+      is_suspended_.store(true);
+      //      SetState(FiberState::Suspended);
       break;
     case FiberState::Terminated:
       Destroy();
