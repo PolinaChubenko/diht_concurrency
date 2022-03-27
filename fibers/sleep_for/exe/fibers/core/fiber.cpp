@@ -49,7 +49,7 @@ void Fiber::SleepFor(Millis delay) {
 
 void Fiber::Suspend() {
   is_suspended_.store(false);
-  SetState(FiberState::Suspended);
+  SetState(FiberState::Suspendable);
   coroutine_.Suspend();
 }
 
@@ -80,13 +80,15 @@ void Fiber::Step() {
 void Fiber::Dispatch() {
   switch (State()) {
     case FiberState::Runnable:
+      // from Yield
       Schedule();
       break;
-    case FiberState::Suspended:
+    case FiberState::Suspendable:
+      // from SleepFor
       is_suspended_.store(true);
-      //      SetState(FiberState::Suspended);
       break;
     case FiberState::Terminated:
+      // task completed
       Destroy();
       break;
     default:

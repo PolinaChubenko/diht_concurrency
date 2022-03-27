@@ -16,8 +16,7 @@ class Fiber {
     Starting,
     Running,
     Runnable,
-    //    Suspendable,
-    Suspended,
+    Suspendable,
     Terminated
   };
 
