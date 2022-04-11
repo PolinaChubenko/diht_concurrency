@@ -17,23 +17,23 @@ class CondVar {
   void Wait(Lock& lock) {
     uint32_t notified = notified_.load();
     lock.unlock();
-    futex_.ParkIfEqual(notified);
+    notified_.wait(notified);
     lock.lock();
   }
 
   void NotifyOne() {
     notified_.fetch_add(1);
-    futex_.WakeOne();
+    notified_.notify_one();
   }
 
   void NotifyAll() {
     notified_.fetch_add(1);
-    futex_.WakeAll();
+    notified_.notify_all();
   }
 
  private:
   twist::stdlike::atomic<uint32_t> notified_{0};
-  FutexLike<uint32_t> futex_{notified_};
+  //  FutexLike<uint32_t> futex_{notified_};
 };
 
 }  // namespace exe::fibers
