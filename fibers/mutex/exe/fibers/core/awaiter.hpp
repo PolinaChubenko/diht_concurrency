@@ -35,7 +35,6 @@ struct FutexScheduler : IAwaiter, wheels::IntrusiveListNode<FutexScheduler> {
   }
 
   twist::stdlike::atomic<uint32_t> count_{2};
-  //  size_t count_;
 };
 
 }  // namespace exe::fibers
