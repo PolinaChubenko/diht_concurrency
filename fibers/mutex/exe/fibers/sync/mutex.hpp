@@ -11,14 +11,14 @@ class Mutex {
   void Lock() {
     count_contentions_.fetch_add(1);
     while (is_locked_.exchange(1) == 1) {
-      is_locked_.FutexWait(1);
+      futex_.ParkIfEqual(1);
     }
   }
 
   void Unlock() {
     is_locked_.store(0);
     if (count_contentions_.fetch_sub(1) > 1) {
-      is_locked_.FutexWakeOne();
+      futex_.WakeOne();
     }
   }
 

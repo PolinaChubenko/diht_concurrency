@@ -3,6 +3,7 @@
 #include <exe/fibers/core/api.hpp>
 #include <exe/coroutine/impl.hpp>
 #include <context/stack.hpp>
+#include <exe/fibers/core/awaiter.hpp>
 
 namespace exe::fibers {
 
@@ -18,9 +19,10 @@ class Fiber {
 
   void Yield();
 
-  void Suspend();
+  void Suspend(IAwaiter*);
   void Resume();
 
+  FiberHandle GetHandle();
   static Fiber& Self();
 
  private:

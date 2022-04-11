@@ -2,6 +2,7 @@
 
 #include <exe/coroutine/routine.hpp>
 #include <exe/tp/thread_pool.hpp>
+#include <exe/fibers/core/awaiter.hpp>
 
 namespace exe::fibers {
 
@@ -23,7 +24,9 @@ void Yield();
 
 // For synchronization primitives
 // Do not use directly
-void Suspend();
+void Suspend(IAwaiter*);
+
+FiberHandle GetHandle();
 
 }  // namespace self
 

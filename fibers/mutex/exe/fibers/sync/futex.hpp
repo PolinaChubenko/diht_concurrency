@@ -17,34 +17,47 @@ class FutexLike {
   }
 
   ~FutexLike() {
-    assert(parking_.empty());
+    assert(parking_.IsEmpty());
   }
 
   // Park current fiber if cell.load() == `old`
   void ParkIfEqual(T old) {
-    std::unique_lock lock(spinlock_);
+    std::unique_lock unique_lock(spinlock_);
     if (cell_.load() == old) {
-      parking_.PushBack(cell_);
-      self::Suspend();
+      FutexScheduler awaiter(self::GetHandle());
+      parking_.PushBack(&awaiter);
+      unique_lock.unlock();
+      self::Suspend(&awaiter);
+      unique_lock.lock();
     }
   }
 
   void WakeOne() {
-    std::lock_guard guard_lock(spinlock_);
+    std::unique_lock unique_lock(spinlock_);
     if (!parking_.IsEmpty()) {
-      parking_.PopBack();
+      auto awaiter = parking_.PopFront();
+      unique_lock.unlock();
+      awaiter->CallStrategy();
+      unique_lock.lock();
     }
   }
 
   void WakeAll() {
-    std::lock_guard guard_lock(spinlock_);
-    parking_.UnlinkAll();
+    std::unique_lock unique_lock(spinlock_);
+    size_t sz = parking_.Size();
+    while (!parking_.IsEmpty() && sz != 0) {
+      auto awaiter = parking_.PopFront();
+      unique_lock.unlock();
+      awaiter->CallStrategy();
+      unique_lock.lock();
+      --sz;
+    }
   }
 
  private:
   twist::stdlike::atomic<T>& cell_;
   exe::support::SpinLock spinlock_;
-  wheels::IntrusiveList<twist::stdlike::atomic<T>> parking_;
+  wheels::IntrusiveList<FutexScheduler> parking_;
 };
 
 }  // namespace exe::fibers
