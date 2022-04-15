@@ -33,12 +33,12 @@ void Fiber::Yield() {
 
 void Fiber::Step() {
   try {
-    this->coroutine_.Resume();
+    coroutine_.Resume();
   } catch (...) {
     std::cout << "Caught exception from coroutine\n";
     return;
   }
-  if (this->coroutine_.IsCompleted()) {
+  if (coroutine_.IsCompleted()) {
     delete this;
   } else {
     Schedule();

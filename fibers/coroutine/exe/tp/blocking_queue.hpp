@@ -6,7 +6,7 @@
 #include <deque>
 #include <optional>
 
-namespace tp {
+namespace exe::tp {
 
 // Unbounded blocking multi-producers/multi-consumers queue
 
@@ -61,4 +61,4 @@ class UnboundedBlockingQueue {
   bool is_closed_ = false;
 };
 
-}  // namespace tp
+}  // namespace exe::tp
