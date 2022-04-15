@@ -1,6 +1,7 @@
 #pragma once
 
 #include <tp/blocking_queue.hpp>
+#include <tp/countdown.hpp>
 #include <tp/task.hpp>
 
 #include <twist/stdlike/thread.hpp>
@@ -42,8 +43,7 @@ class ThreadPool {
  private:
   std::vector<twist::stdlike::thread> workers_;
   UnboundedBlockingQueue<Task> task_queue_;
-  twist::stdlike::atomic<size_t> count_tasks_{0};
-  twist::stdlike::atomic<uint32_t> no_tasks_{1};
+  Countdown task_counter_;
 };
 
 inline ThreadPool* Current() {
