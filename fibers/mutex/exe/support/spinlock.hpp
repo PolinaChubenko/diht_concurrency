@@ -10,13 +10,15 @@ namespace exe::support {
 class SpinLock {
  public:
   void Lock() {
-    while (locked_.exchange(true)) {
-      spin_wait_();
+    while (locked_.exchange(true, std::memory_order_acquire)) {
+      while (locked_.load(std::memory_order_relaxed)) {
+        spin_wait_();
+      }
     }
   }
 
   void Unlock() {
-    locked_.store(false);
+    locked_.store(false, std::memory_order_release);
   }
 
   // BasicLockable

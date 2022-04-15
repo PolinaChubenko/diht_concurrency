@@ -19,15 +19,12 @@ ThreadPool::~ThreadPool() {
 }
 
 void ThreadPool::Submit(Task task) {
-  count_tasks_.fetch_add(1);
+  task_counter_.Increment();
   task_queue_.Put(std::move(task));
 }
 
 void ThreadPool::WaitIdle() {
-  uint32_t tasks;
-  while ((tasks = count_tasks_.load()) > 0) {
-    count_tasks_.wait(tasks);
-  }
+  task_counter_.WaitZero();
 }
 
 void ThreadPool::Stop() {
@@ -54,8 +51,7 @@ void ThreadPool::WorkerRoutine() {
       break;
     }
     Invoke(task.value());
-    count_tasks_.fetch_sub(1);
-    count_tasks_.notify_all();
+    task_counter_.Decrement();
   }
 }
 

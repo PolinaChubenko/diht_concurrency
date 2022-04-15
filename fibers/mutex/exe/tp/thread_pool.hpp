@@ -2,6 +2,7 @@
 
 #include <exe/tp/task.hpp>
 #include <exe/tp/blocking_queue.hpp>
+#include <exe/tp/countdown.hpp>
 
 #include <twist/stdlike/thread.hpp>
 #include <twist/stdlike/atomic.hpp>
@@ -42,8 +43,8 @@ class ThreadPool {
 
  private:
   std::vector<twist::stdlike::thread> workers_;
-  tp::UnboundedBlockingQueue<Task> task_queue_;
-  twist::stdlike::atomic<uint32_t> count_tasks_{0};
+  UnboundedBlockingQueue<Task> task_queue_;
+  Countdown task_counter_;
 };
 
 }  // namespace exe::tp
