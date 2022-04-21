@@ -38,13 +38,13 @@ void ThreadPool::Stop() {
 void ThreadPool::StartWorkerThreads(size_t count) {
   for (size_t i = 0; i < count; ++i) {
     workers_.emplace_back([this]() {
-      tp::pool = this;
       WorkerRoutine();
     });
   }
 }
 
 void ThreadPool::WorkerRoutine() {
+  tp::pool = this;
   while (auto task = task_queue_.Take()) {
     Invoke(task.value());
     task_counter_.Decrement();
