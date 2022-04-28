@@ -2,9 +2,7 @@
 #include <exe/fibers/core/stacks.hpp>
 
 #include <twist/util/thread_local.hpp>
-#include <twist/util/spin_wait.hpp>
 
-#include <asio/steady_timer.hpp>
 #include <asio/post.hpp>
 
 namespace exe::fibers {
@@ -13,11 +11,26 @@ static twist::util::ThreadLocalPtr<Fiber> local_fiber;
 
 //////////////////////////////////////////////////////////////////////
 
+Fiber::Operator::Operator(Fiber* fiber) : owner_(fiber), timer_(nullptr) {
+}
+
+void Fiber::Operator::SetTimer(asio::steady_timer* timer) {
+  timer_ = timer;
+}
+
+void Fiber::Operator::CallBack() {
+  timer_->async_wait([this](std::error_code /*ec*/) {
+    timer_ = nullptr;
+    owner_->Resume();
+  });
+}
+
 Fiber::Fiber(Scheduler& scheduler, Routine routine)
     : scheduler_(&scheduler),
       stack_(AllocateStack()),
       coroutine_(std::move(routine), stack_.View()),
-      state_(FiberState::Starting) {
+      state_(FiberState::Starting),
+      operator_(this) {
 }
 
 void Fiber::Destroy() {
@@ -27,7 +40,6 @@ void Fiber::Destroy() {
 
 void Fiber::Schedule() {
   asio::post(*scheduler_, [this]() {
-    fibers::local_fiber = this;
     Step();
   });
 }
@@ -38,32 +50,24 @@ void Fiber::Yield() {
 }
 
 void Fiber::SleepFor(Millis delay) {
-  auto timer = new asio::steady_timer(*scheduler_);
-  timer->expires_after(delay);
-  timer->async_wait([this, timer](std::error_code /*ec*/) {
-    Resume();
-    delete timer;
-  });
+  asio::steady_timer timer(*scheduler_);
+  timer.expires_after(delay);
+  operator_.SetTimer(&timer);
   Suspend();
 }
 
 void Fiber::Suspend() {
-  is_suspended_.store(false);
   SetState(FiberState::Suspendable);
   coroutine_.Suspend();
 }
 
 void Fiber::Resume() {
-  twist::util::SpinWait spin_wait;
-  while (!is_suspended_.load()) {
-    spin_wait();
-  }
-  is_suspended_.store(false);
   SetState(FiberState::Runnable);
   Schedule();
 }
 
 void Fiber::Step() {
+  fibers::local_fiber = this;
   SetState(FiberState::Running);
   try {
     coroutine_.Resume();
@@ -85,7 +89,7 @@ void Fiber::Dispatch() {
       break;
     case FiberState::Suspendable:
       // from SleepFor
-      is_suspended_.store(true);
+      operator_.CallBack();
       break;
     case FiberState::Terminated:
       // task completed

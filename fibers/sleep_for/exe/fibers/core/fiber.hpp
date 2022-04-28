@@ -4,8 +4,7 @@
 #include <exe/coroutine/impl.hpp>
 
 #include <context/stack.hpp>
-
-#include <twist/stdlike/atomic.hpp>
+#include <asio/steady_timer.hpp>
 
 namespace exe::fibers {
 
@@ -45,11 +44,24 @@ class Fiber {
   void Dispatch();
 
  private:
+  class Operator {
+   public:
+    explicit Operator(Fiber* fiber);
+
+    void SetTimer(asio::steady_timer* timer);
+    void CallBack();
+
+   private:
+    Fiber* owner_;
+    asio::steady_timer* timer_;
+  };
+
+ private:
   Scheduler* scheduler_;
   context::Stack stack_;
   coroutine::CoroutineImpl coroutine_;
   FiberState state_;
-  twist::stdlike::atomic<bool> is_suspended_{false};
+  Operator operator_;
 };
 
 }  // namespace exe::fibers
