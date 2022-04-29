@@ -1,6 +1,7 @@
 #include <exe/fibers/core/stacks.hpp>
 
-#include <twist/stdlike/mutex.hpp>
+#include <exe/support/spinlock.hpp>
+#include <mutex>
 #include <optional>
 #include <vector>
 
@@ -20,7 +21,7 @@ class StackAllocator {
   }
 
   void Release(Stack stack) {
-    std::lock_guard guard_lock(mutex_);
+    std::lock_guard guard_lock(spinlock_);
     pool_.push_back(std::move(stack));
   }
 
@@ -31,7 +32,7 @@ class StackAllocator {
   }
 
   std::optional<Stack> TryTakeFromPool() {
-    std::lock_guard guard_lock(mutex_);
+    std::lock_guard guard_lock(spinlock_);
     if (pool_.empty()) {
       return std::nullopt;
     }
@@ -41,7 +42,7 @@ class StackAllocator {
   }
 
  private:
-  twist::stdlike::mutex mutex_;
+  support::SpinLock spinlock_;
   std::vector<Stack> pool_;
 };
 

@@ -11,15 +11,16 @@ static twist::util::ThreadLocalPtr<Fiber> local_fiber;
 
 //////////////////////////////////////////////////////////////////////
 
-Fiber::Operator::Operator(Fiber* fiber) : owner_(fiber), timer_(nullptr) {
+Fiber::TimerSuspender::TimerSuspender(Fiber* fiber)
+    : owner_(fiber), timer_(nullptr) {
 }
 
-void Fiber::Operator::SetTimer(asio::steady_timer* timer) {
+void Fiber::TimerSuspender::SetTimer(asio::steady_timer* timer) {
   timer_ = timer;
 }
 
-void Fiber::Operator::CallBack() {
-  timer_->async_wait([this](std::error_code /*ec*/) {
+void Fiber::TimerSuspender::CallBack() {
+  timer_->async_wait([this](std::error_code) {
     timer_ = nullptr;
     owner_->Resume();
   });
@@ -30,7 +31,7 @@ Fiber::Fiber(Scheduler& scheduler, Routine routine)
       stack_(AllocateStack()),
       coroutine_(std::move(routine), stack_.View()),
       state_(FiberState::Starting),
-      operator_(this) {
+      timer_suspender_(this) {
 }
 
 void Fiber::Destroy() {
@@ -52,7 +53,7 @@ void Fiber::Yield() {
 void Fiber::SleepFor(Millis delay) {
   asio::steady_timer timer(*scheduler_);
   timer.expires_after(delay);
-  operator_.SetTimer(&timer);
+  timer_suspender_.SetTimer(&timer);
   Suspend();
 }
 
@@ -89,7 +90,7 @@ void Fiber::Dispatch() {
       break;
     case FiberState::Suspendable:
       // from SleepFor
-      operator_.CallBack();
+      timer_suspender_.CallBack();
       break;
     case FiberState::Terminated:
       // task completed

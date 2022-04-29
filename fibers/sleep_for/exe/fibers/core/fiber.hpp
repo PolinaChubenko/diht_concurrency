@@ -44,9 +44,9 @@ class Fiber {
   void Dispatch();
 
  private:
-  class Operator {
+  class TimerSuspender {
    public:
-    explicit Operator(Fiber* fiber);
+    explicit TimerSuspender(Fiber* fiber);
 
     void SetTimer(asio::steady_timer* timer);
     void CallBack();
@@ -61,7 +61,7 @@ class Fiber {
   context::Stack stack_;
   coroutine::CoroutineImpl coroutine_;
   FiberState state_;
-  Operator operator_;
+  TimerSuspender timer_suspender_;
 };
 
 }  // namespace exe::fibers
