@@ -10,9 +10,10 @@ namespace exe::support {
 class SpinLock {
  public:
   void Lock() {
+    twist::util::SpinWait spin_wait;
     while (locked_.exchange(true, std::memory_order_acquire)) {
       while (locked_.load(std::memory_order_relaxed)) {
-        spin_wait_();
+        spin_wait();
       }
     }
   }
@@ -32,7 +33,6 @@ class SpinLock {
   }
 
  private:
-  twist::util::SpinWait spin_wait_;
   twist::stdlike::atomic<bool> locked_{false};
 };
 
