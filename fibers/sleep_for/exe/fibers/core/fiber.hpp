@@ -61,7 +61,7 @@ class Fiber {
   context::Stack stack_;
   coroutine::CoroutineImpl coroutine_;
   FiberState state_;
-  TimerSuspender timer_suspender_;
+  TimerSuspender* timer_suspender_{nullptr};
 };
 
 }  // namespace exe::fibers

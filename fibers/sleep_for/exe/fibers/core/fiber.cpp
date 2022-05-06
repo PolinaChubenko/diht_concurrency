@@ -30,8 +30,7 @@ Fiber::Fiber(Scheduler& scheduler, Routine routine)
     : scheduler_(&scheduler),
       stack_(AllocateStack()),
       coroutine_(std::move(routine), stack_.View()),
-      state_(FiberState::Starting),
-      timer_suspender_(this) {
+      state_(FiberState::Starting) {
 }
 
 void Fiber::Destroy() {
@@ -47,18 +46,20 @@ void Fiber::Schedule() {
 
 void Fiber::Yield() {
   SetState(FiberState::Runnable);
-  coroutine_.Suspend();
+  Suspend();
 }
 
 void Fiber::SleepFor(Millis delay) {
+  TimerSuspender timer_suspender(this);
+  timer_suspender_ = &timer_suspender;
   asio::steady_timer timer(*scheduler_);
   timer.expires_after(delay);
-  timer_suspender_.SetTimer(&timer);
+  timer_suspender_->SetTimer(&timer);
+  SetState(FiberState::Suspendable);
   Suspend();
 }
 
 void Fiber::Suspend() {
-  SetState(FiberState::Suspendable);
   coroutine_.Suspend();
 }
 
@@ -90,7 +91,7 @@ void Fiber::Dispatch() {
       break;
     case FiberState::Suspendable:
       // from SleepFor
-      timer_suspender_.CallBack();
+      timer_suspender_->CallBack();
       break;
     case FiberState::Terminated:
       // task completed
