@@ -1,8 +1,8 @@
-#include <exe/executors/tp/thread_pool.hpp>
+#include <exe/executors/tp/compute/thread_pool.hpp>
 
 #include <twist/util/thread_local.hpp>
 
-namespace exe::executors {
+namespace exe::executors::tp::compute {
 
 ////////////////////////////////////////////////////////////////////////////////
 
@@ -38,13 +38,13 @@ void ThreadPool::Stop() {
 void ThreadPool::StartWorkerThreads(size_t count) {
   for (size_t i = 0; i < count; ++i) {
     workers_.emplace_back([this]() {
-      executors::pool = this;
       WorkerRoutine();
     });
   }
 }
 
 void ThreadPool::WorkerRoutine() {
+  compute::pool = this;
   while (auto task = task_queue_.Take()) {
     Invoke(task.value());
     task_counter_.Decrement();
@@ -71,4 +71,4 @@ ThreadPool* ThreadPool::Current() {
   return pool;
 }
 
-}  // namespace exe::executors
+}  // namespace exe::executors::tp::compute
