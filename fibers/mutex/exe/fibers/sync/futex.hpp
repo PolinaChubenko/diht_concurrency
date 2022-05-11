@@ -37,7 +37,7 @@ class FutexLike {
     if (!parking_.IsEmpty()) {
       auto awaiter = parking_.PopFront();
       unique_lock.unlock();
-      awaiter->CallStrategy();
+      awaiter->AwaitSuspend();
       unique_lock.lock();
     }
   }
@@ -48,7 +48,7 @@ class FutexLike {
     while (!parking_.IsEmpty() && sz != 0) {
       auto awaiter = parking_.PopFront();
       unique_lock.unlock();
-      awaiter->CallStrategy();
+      awaiter->AwaitSuspend();
       unique_lock.lock();
       --sz;
     }

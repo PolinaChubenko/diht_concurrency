@@ -52,7 +52,7 @@ void Fiber::Step() {
   if (coroutine_.IsCompleted()) {
     delete this;
   } else {
-    local_awaiter->CallStrategy();
+    local_awaiter->AwaitSuspend();
   }
 }
 
