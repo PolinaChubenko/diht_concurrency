@@ -33,24 +33,23 @@ class LockFreeStack {
   }
 
   std::optional<T> TryPop() {
-    StampedPtr<Node> checker{nullptr, 0};
     while (true) {
-      FreeOnOverflow(checker);
       auto cur_top = top_.LoadPtr();
-      checker = cur_top;
+      auto checker = cur_top;
       if (cur_top.raw_ptr == nullptr) {
         return std::nullopt;
       }
       if (top_.CompareExchangeWeak(cur_top, cur_top->next.Load())) {
         return Pop(cur_top);
       }
+      FreeOnOverflow(checker);
     }
   }
 
   ~LockFreeStack() {
     StampedPtr<Node> top = top_.Load();
     while (top.raw_ptr != nullptr) {
-      StampedPtr<Node> prev_top = top;
+      auto prev_top = top;
       top = prev_top->next.Load();
       delete prev_top.raw_ptr;
     }
@@ -60,7 +59,7 @@ class LockFreeStack {
   static const uint32_t kOverflow = -1;
 
   void FreeOnOverflow(StampedPtr<Node>& node) {
-    if (node.raw_ptr != nullptr && node->decrements.fetch_add(1) == kOverflow) {
+    if (node->decrements.fetch_add(1) == kOverflow) {
       delete node.raw_ptr;
     }
   }
