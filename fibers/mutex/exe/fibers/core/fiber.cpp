@@ -6,7 +6,6 @@
 namespace exe::fibers {
 
 static twist::util::ThreadLocalPtr<Fiber> local_fiber;
-static twist::util::ThreadLocalPtr<IAwaiter> local_awaiter;
 
 //////////////////////////////////////////////////////////////////////
 
@@ -28,13 +27,12 @@ void Fiber::Schedule() {
 }
 
 void Fiber::Yield() {
-  auto handle = GetHandle();
-  YieldScheduler awaiter(handle);
+  YieldAwaiter awaiter;
   Suspend(&awaiter);
 }
 
 void Fiber::Suspend(IAwaiter* awaiter) {
-  local_awaiter = awaiter;
+  awaiter_ = awaiter;
   coroutine_.Suspend();
 }
 
@@ -51,8 +49,11 @@ void Fiber::Step() {
   }
   if (coroutine_.IsCompleted()) {
     delete this;
+  } else if (awaiter_ == nullptr) {
+    Schedule();
   } else {
-    local_awaiter->AwaitSuspend();
+    auto awaiter = std::exchange(awaiter_, nullptr);
+    awaiter->AwaitSuspend(GetHandle());
   }
 }
 

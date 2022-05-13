@@ -32,6 +32,7 @@ class Fiber {
  private:
   Scheduler* scheduler_;
   context::Stack stack_;
+  IAwaiter* awaiter_;
   coroutine::CoroutineImpl coroutine_;
 };
 
