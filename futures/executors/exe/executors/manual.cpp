@@ -2,8 +2,8 @@
 
 namespace exe::executors {
 
-void ManualExecutor::Execute(Task task) {
-  tasks_queue_.push(std::move(task));
+void ManualExecutor::Execute(TaskBase* task) {
+  tasks_queue_.PushBack(task);
 }
 
 // Run tasks
@@ -22,9 +22,9 @@ size_t ManualExecutor::Drain() {
 }
 
 void ManualExecutor::DoTask() {
-  auto task = std::move(tasks_queue_.front());
-  tasks_queue_.pop();
-  task();
+  auto task = std::move(tasks_queue_.PopFront());
+  task->Run();
+  task->Discard();
 }
 
 }  // namespace exe::executors

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <exe/executors/executor.hpp>
-#include <exe/executors/task.hpp>
 #include <exe/executors/tp/blocking_queue.hpp>
 #include <exe/executors/tp/countdown.hpp>
 
@@ -25,7 +24,7 @@ class ThreadPool : public IExecutor {
 
   // IExecutor
   // Schedules task for execution in one of the worker threads
-  void Execute(Task task) override;
+  void Execute(TaskBase* task) override;
 
   // Waits until outstanding work count has reached zero
   void WaitIdle();
@@ -40,12 +39,12 @@ class ThreadPool : public IExecutor {
  private:
   void StartWorkerThreads(size_t count);
   void JoinWorkerThreads();
-  void Invoke(Task& task);
+  void Invoke(TaskBase* task);
   void WorkerRoutine();
 
  private:
   std::vector<twist::stdlike::thread> workers_;
-  UnboundedBlockingQueue<Task> task_queue_;
+  UnboundedBlockingQueue<TaskBase> task_queue_;
   Countdown task_counter_;
 };
 

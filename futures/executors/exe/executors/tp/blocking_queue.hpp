@@ -2,6 +2,7 @@
 
 #include <twist/stdlike/mutex.hpp>
 #include <twist/stdlike/condition_variable.hpp>
+#include <wheels/intrusive/forward_list.hpp>
 
 #include <deque>
 #include <optional>
@@ -13,26 +14,25 @@ namespace exe::executors {
 template <typename T>
 class UnboundedBlockingQueue {
  public:
-  bool Put(T value) {
-    std::lock_guard<twist::stdlike::mutex> guard_lock(mutex_);
+  bool Put(T* value) {
+    std::lock_guard guard_lock(mutex_);
     if (is_closed_) {
       return false;
     }
-    deque_.push_back(std::move(value));
+    deque_.PushBack(value);
     not_empty_.notify_one();
     return true;
   }
 
-  std::optional<T> Take() {
-    std::unique_lock<twist::stdlike::mutex> unique_lock(mutex_);
+  std::optional<T*> Take() {
+    std::unique_lock unique_lock(mutex_);
     not_empty_.wait(unique_lock, [&]() {
-      return !(deque_.empty() && !is_closed_);
+      return !(deque_.IsEmpty() && !is_closed_);
     });
-    if (is_closed_ && deque_.empty()) {
+    if (is_closed_ && deque_.IsEmpty()) {
       return std::nullopt;
     }
-    auto value{std::move(deque_.front())};
-    deque_.pop_front();
+    auto value{deque_.PopFront()};
     return value;
   }
 
@@ -46,9 +46,11 @@ class UnboundedBlockingQueue {
 
  private:
   void CloseImpl(bool clear) {
-    std::lock_guard<twist::stdlike::mutex> guard_lock(mutex_);
+    std::lock_guard guard_lock(mutex_);
     if (clear) {
-      deque_.clear();
+      while (!deque_.IsEmpty()) {
+        deque_.PopFront()->Discard();
+      }
     }
     is_closed_ = true;
     not_empty_.notify_all();
@@ -57,7 +59,7 @@ class UnboundedBlockingQueue {
  private:
   twist::stdlike::condition_variable not_empty_;
   twist::stdlike::mutex mutex_;
-  std::deque<T> deque_;
+  wheels::IntrusiveForwardList<T> deque_;
   bool is_closed_ = false;
 };
 

@@ -1,7 +1,6 @@
 #pragma once
 
 #include <exe/executors/executor.hpp>
-#include <queue>
 
 namespace exe::executors {
 
@@ -10,7 +9,7 @@ namespace exe::executors {
 class ManualExecutor : public IExecutor {
  public:
   // IExecutor
-  void Execute(Task task) override;
+  void Execute(TaskBase* task) override;
 
   // Run tasks
 
@@ -29,18 +28,18 @@ class ManualExecutor : public IExecutor {
   size_t Drain();
 
   size_t TaskCount() const {
-    return tasks_queue_.size();
+    return tasks_queue_.Size();
   }
 
   bool HasTasks() const {
-    return !tasks_queue_.empty();
+    return !tasks_queue_.IsEmpty();
   }
 
  private:
   void DoTask();
 
  private:
-  std::queue<Task> tasks_queue_;
+  wheels::IntrusiveForwardList<TaskBase> tasks_queue_;
 };
 
 }  // namespace exe::executors

@@ -5,8 +5,9 @@ namespace exe::executors {
 class InlineExecutor : public IExecutor {
  public:
   // IExecutor
-  void Execute(Task task) override {
-    task();
+  void Execute(TaskBase* task) override {
+    task->Run();
+    task->Discard();
   }
 };
 

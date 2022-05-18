@@ -18,9 +18,9 @@ ThreadPool::~ThreadPool() {
   assert(workers_.empty());
 }
 
-void ThreadPool::Execute(Task task) {
+void ThreadPool::Execute(TaskBase* task) {
   task_counter_.Increment();
-  task_queue_.Put(std::move(task));
+  task_queue_.Put(task);
 }
 
 void ThreadPool::WaitIdle() {
@@ -59,9 +59,10 @@ void ThreadPool::JoinWorkerThreads() {
   }
 }
 
-void ThreadPool::Invoke(Task& task) {
+void ThreadPool::Invoke(TaskBase* task) {
   try {
-    task();
+    task->Run();
+    task->Discard();
   } catch (...) {
     std::cout << "Task is invalid\n";
   }

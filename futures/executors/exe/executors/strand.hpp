@@ -15,7 +15,7 @@ class Strand : public IExecutor {
   explicit Strand(IExecutor& underlying);
 
   // IExecutor
-  void Execute(Task task) override;
+  void Execute(TaskBase* task) override;
 
  private:
   void Submit();
