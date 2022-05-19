@@ -45,16 +45,16 @@ template <typename F> requires SyncContinuation<F, T>
 auto Future<T>::Then(F continuation) && {
   using U = std::invoke_result_t<F, T>;
 
-  auto [f, p] = MakeContract<U>();
+  auto [f, p] = MakeContractVia<U>(GetExecutor());
   Callback<T> callback = [p = std::move(p), cont = std::move(continuation)]
-      (wheels::Result<T> input) mutable {
+      (wheels::Result<T>&& input) mutable {
     if (input.HasError()) {
       std::move(p).SetError(std::move(input.GetError()));
     } else {
       try {
         std::move(p).SetValue(cont(std::move(input)));
-      } catch (std::exception_ptr ex) {
-        std::move(p).SetError(ex);
+      } catch (...) {
+        std::move(p).SetError(std::current_exception());
       }
     }
   };
@@ -71,20 +71,20 @@ template <typename F> requires AsyncContinuation<F, T>
 auto Future<T>::Then(F continuation) && {
   using U = typename detail::Flatten<std::invoke_result_t<F, T>>::ValueType;
 
-  auto [f, p] = MakeContract<U>();
+  auto [f, p] = MakeContractVia<U>(GetExecutor());
   Callback<T> callback = [p = std::move(p), cont = std::move(continuation)]
-      (wheels::Result<T> input) mutable {
+      (wheels::Result<T>&& input) mutable {
     if (input.HasError()) {
       std::move(p).SetError(std::move(input.GetError()));
     } else {
       try {
         auto cont_future = cont(std::move(*input));
         std::move(cont_future).Subscribe([p = std::move(p)]
-                                         (wheels::Result<U> result) mutable {
+                                         (wheels::Result<U>&& result) mutable {
           std::move(p).SetValue(std::move(result));
         });
-      } catch (std::exception_ptr ex) {
-        std::move(p).SetError(ex);
+      } catch (...) {
+        std::move(p).SetError(std::current_exception());
       }
     }
   };
@@ -99,9 +99,9 @@ auto Future<T>::Then(F continuation) && {
 template <typename T>
 template <typename F> requires ErrorHandler<F, T>
     Future<T> Future<T>::Recover(F error_handler) && {
-  auto [f, p] = MakeContract<T>();
+  auto [f, p] = MakeContractVia<T>(GetExecutor());
   Callback<T> callback = [p = std::move(p), handler = std::move(error_handler)]
-      (wheels::Result<T> input) mutable {
+      (wheels::Result<T>&& input) mutable {
     if (input.HasError()) {
       std::move(p).SetValue(handler(std::move(input.GetError())));
     } else {

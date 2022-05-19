@@ -44,14 +44,14 @@ class SharedState {
 
   // Producer
   // Progress guarantee: wait-free
-  void SetResult(wheels::Result<T> result) {
+  void SetResult(wheels::Result<T>&& result) {
     result_.emplace(std::move(result));
     UpdateState(State::has_result);
   }
 
   // Consumer
   // Progress guarantee: wait-free
-  void SetCallback(Callback<T> callback) {
+  void SetCallback(Callback<T>&& callback) {
     callback_ = std::move(callback);
     UpdateState(State::has_callback);
   }

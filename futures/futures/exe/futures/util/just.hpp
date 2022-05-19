@@ -6,7 +6,7 @@ namespace exe::futures {
 
 template <typename T>
 Future<T> JustValue(T /*value*/) {
-  return Future<T>::Invalid();  // Not implemented
+  return Future<T>::Invalid();
 }
 
 }  // namespace exe::futures

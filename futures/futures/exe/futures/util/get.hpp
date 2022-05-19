@@ -4,11 +4,7 @@
 
 namespace exe::futures {
 
-namespace detail {
-
-// Your code goes here
-
-}  // namespace detail
+namespace detail {}  // namespace detail
 
 // ~ std::future::get
 // Blocking
