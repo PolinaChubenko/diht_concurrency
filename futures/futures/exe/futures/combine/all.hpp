@@ -7,6 +7,8 @@
 
 #include <wheels/support/vector.hpp>
 
+#include <iostream>
+
 namespace exe::futures {
 
 namespace detail {
@@ -14,19 +16,22 @@ namespace detail {
 template <typename T>
 class AllCombinator {
  public:
-  explicit AllCombinator(size_t inputs) : inputs_(inputs) {
-    collection_.reserve(inputs);
+  explicit AllCombinator(size_t inputs) : collection_(inputs, std::nullopt) {
   }
 
-  void AddResult(wheels::Result<T> result) {
+  void AddResult(size_t index, wheels::Result<T> result) {
     if (promise_.has_value()) {
       if (result.HasError()) {
-        std::move(*promise_).SetError(result.GetError());
+        std::move(*promise_).SetError(std::move(result.GetError()));
       } else {
         std::lock_guard lock(mutex_);
-        collection_.template emplace_back(std::move(result.ValueUnsafe()));
-        if (collection_.size() == inputs_) {
-          std::move(*promise_).SetValue(std::move(collection_));
+        collection_[index] = std::move(result.ValueUnsafe());
+        if (++inputs_ == collection_.size()) {
+          std::vector<T> values;
+          for (size_t i = 0; i < inputs_; ++i) {
+            values.template emplace_back(std::move(collection_[i].value()));
+          }
+          std::move(*promise_).SetValue(std::move(values));
         }
       }
     }
@@ -39,10 +44,10 @@ class AllCombinator {
   }
 
  private:
-  size_t inputs_;
+  size_t inputs_{0};
   std::optional<Promise<std::vector<T>>> promise_;
   twist::stdlike::mutex mutex_;
-  std::vector<T> collection_;
+  std::vector<std::optional<T>> collection_;
 };
 
 }  // namespace detail

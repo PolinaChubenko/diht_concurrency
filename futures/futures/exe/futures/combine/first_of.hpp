@@ -17,7 +17,7 @@ class FirstOfCombinator {
   explicit FirstOfCombinator(size_t inputs) : inputs_(inputs) {
   }
 
-  void AddResult(wheels::Result<T> result) {
+  void AddResult(size_t /*index*/, wheels::Result<T> result) {
     if (finished_) {
       return;
     }

@@ -15,10 +15,11 @@ auto Combine(std::vector<Future<T>> futures, Args&&... args) {
 
   auto f = combinator->MakeFuture();
 
-  for (auto& future : futures) {
-    std::move(future).Subscribe(
-        [combinator = std::move(combinator)](wheels::Result<T> result) {
-          combinator->AddResult(std::move(result));
+  for (size_t i = 0; i < futures.size(); ++i) {
+    std::move(futures[i])
+        .Subscribe([combinator = combinator,
+                    index = i](wheels::Result<T>&& result) mutable {
+          combinator->AddResult(index, std::move(result));
         });
   }
 
