@@ -20,11 +20,12 @@ class AllCombinator {
   }
 
   void AddResult(size_t index, wheels::Result<T> result) {
-    if (promise_.has_value()) {
+    std::lock_guard guard_lock(mutex_);
+    if (!finished_ && promise_.has_value()) {
       if (result.HasError()) {
         std::move(*promise_).SetError(std::move(result.GetError()));
+        finished_ = true;
       } else {
-        std::lock_guard lock(mutex_);
         collection_[index] = std::move(result.ValueUnsafe());
         if (++inputs_ == collection_.size()) {
           std::vector<T> values;
@@ -32,6 +33,7 @@ class AllCombinator {
             values.template emplace_back(std::move(collection_[i].value()));
           }
           std::move(*promise_).SetValue(std::move(values));
+          finished_ = true;
         }
       }
     }
@@ -44,10 +46,11 @@ class AllCombinator {
   }
 
  private:
-  size_t inputs_{0};
+  size_t inputs_ = 0;
   std::optional<Promise<std::vector<T>>> promise_;
   twist::stdlike::mutex mutex_;
   std::vector<std::optional<T>> collection_;
+  bool finished_ = false;
 };
 
 }  // namespace detail

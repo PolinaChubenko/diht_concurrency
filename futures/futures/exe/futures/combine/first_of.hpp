@@ -18,20 +18,21 @@ class FirstOfCombinator {
   }
 
   void AddResult(size_t /*index*/, wheels::Result<T> result) {
-    if (finished_) {
-      return;
-    }
-    if (result.HasError()) {
-      if (inputs_.fetch_sub(1) == 1) {
-        std::move(*promise_).SetError(result.GetError());
+    if (!finished_.load()) {
+      if (result.HasError()) {
+        if (inputs_.fetch_sub(1) == 1) {
+          std::move(*promise_).SetError(result.GetError());
+        }
+      } else if (!finished_.exchange(true)) {
+        std::move(*promise_).SetValue(std::move(result));
       }
-    } else if (!finished_.exchange(true)) {
-      std::move(*promise_).SetValue(std::move(result));
     }
   }
 
   auto MakeFuture() {
-    return Future<T>::Invalid();
+    auto [f, p] = MakeContract<T>();
+    promise_.template emplace(std::move(p));
+    return std::move(f);
   }
 
  private:
