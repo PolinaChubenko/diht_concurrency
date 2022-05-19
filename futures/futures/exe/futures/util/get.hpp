@@ -4,26 +4,46 @@
 
 namespace exe::futures {
 
-namespace detail {}  // namespace detail
+namespace detail {
+
+template <typename T>
+struct ResultWaiter {
+ public:
+  void Receive(wheels::Result<T>&& received) {
+    result_ = std::move(received);
+    has_result_.store(1);
+    has_result_.notify_one();
+  }
+
+  void Wait() {
+    while (has_result_.load() == 0) {
+      has_result_.wait(0);
+    }
+  }
+
+  wheels::Result<T> GetResult() {
+    return std::move(*result_);
+  }
+
+ private:
+  twist::stdlike::atomic<uint32_t> has_result_{0};
+  std::optional<wheels::Result<T>> result_;
+};
+
+}  // namespace detail
 
 // ~ std::future::get
 // Blocking
 template <typename T>
 wheels::Result<T> GetResult(Future<T> future) {
-  twist::stdlike::atomic<uint32_t> has_result{0};
-  std::optional<wheels::Result<T>> result;
+  detail::ResultWaiter<T> result_waiter;
 
-  std::move(future).Subscribe([&has_result, &result](wheels::Result<T> input) {
-    result = std::move(input);
-    has_result.store(1);
-    has_result.notify_one();
+  std::move(future).Subscribe([&result_waiter](wheels::Result<T> input) {
+    result_waiter.Receive(std::move(input));
   });
 
-  while (has_result.load() == 0) {
-    has_result.wait(0);
-  }
-
-  return std::move(*result);
+  result_waiter.Wait();
+  return result_waiter.GetResult();
 }
 
 // Blocking

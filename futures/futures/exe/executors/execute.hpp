@@ -13,7 +13,7 @@ namespace exe::executors {
 
 template <typename F>
 void Execute(IExecutor& where, F&& f) {
-  where.Execute(new TaskLambda(std::forward<F>(f)));
+  where.Execute(new AutoDeletingTask(std::move(f)));
 }
 
 }  // namespace exe::executors
