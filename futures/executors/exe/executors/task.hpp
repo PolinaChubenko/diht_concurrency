@@ -15,9 +15,9 @@ struct ITask {
 // Intrusive task
 struct TaskBase : ITask, wheels::IntrusiveForwardListNode<TaskBase> {};
 
-struct TaskLambda : TaskBase {
-  template <typename F>
-  explicit TaskLambda(F&& f) : function_(std::forward<F>(f)) {
+template <typename F>
+struct AutoDeletingTask : TaskBase {
+  explicit AutoDeletingTask(F&& f) : function_(std::move(f)) {
   }
 
   void Run() noexcept override {
@@ -33,7 +33,7 @@ struct TaskLambda : TaskBase {
   }
 
  private:
-  wheels::UniqueFunction<void()> function_;
+  F function_;
 };
 
 }  // namespace exe::executors
