@@ -17,7 +17,7 @@ struct TaskBase : ITask, wheels::IntrusiveForwardListNode<TaskBase> {};
 
 template <typename F>
 struct AutoDeletingTask : TaskBase {
-  explicit AutoDeletingTask(F&& f) : function_(std::move(f)) {
+  explicit AutoDeletingTask(F f) : function_(std::move(f)) {
   }
 
   void Run() noexcept override {

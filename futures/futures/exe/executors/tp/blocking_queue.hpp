@@ -3,6 +3,7 @@
 #include <twist/stdlike/mutex.hpp>
 #include <twist/stdlike/condition_variable.hpp>
 #include <wheels/intrusive/forward_list.hpp>
+#include <exe/executors/task.hpp>
 
 #include <deque>
 #include <optional>
@@ -11,10 +12,9 @@ namespace exe::executors {
 
 // Unbounded blocking multi-producers/multi-consumers queue
 
-template <typename T>
 class UnboundedBlockingQueue {
  public:
-  bool Put(T* value) {
+  bool Put(TaskBase* value) {
     std::lock_guard guard_lock(mutex_);
     if (is_closed_) {
       return false;
@@ -24,7 +24,7 @@ class UnboundedBlockingQueue {
     return true;
   }
 
-  std::optional<T*> Take() {
+  std::optional<TaskBase*> Take() {
     std::unique_lock unique_lock(mutex_);
     not_empty_.wait(unique_lock, [&]() {
       return !(deque_.IsEmpty() && !is_closed_);
@@ -59,7 +59,7 @@ class UnboundedBlockingQueue {
  private:
   twist::stdlike::condition_variable not_empty_;
   twist::stdlike::mutex mutex_;
-  wheels::IntrusiveForwardList<T> deque_;
+  wheels::IntrusiveForwardList<TaskBase> deque_;
   bool is_closed_ = false;
 };
 

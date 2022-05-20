@@ -7,27 +7,21 @@ namespace exe::futures {
 namespace detail {
 
 template <typename T>
-struct ResultWaiter {
+struct OneShotEvent {
  public:
-  void Receive(wheels::Result<T>&& received) {
-    result_ = std::move(received);
-    has_result_.store(1);
-    has_result_.notify_one();
+  void Fire() {
+    fired_.store(1);
+    fired_.notify_one();
   }
 
   void Wait() {
-    while (has_result_.load() == 0) {
-      has_result_.wait(0);
+    while (fired_.load() == 0) {
+      fired_.wait(0);
     }
   }
 
-  wheels::Result<T> GetResult() {
-    return std::move(*result_);
-  }
-
  private:
-  twist::stdlike::atomic<uint32_t> has_result_{0};
-  std::optional<wheels::Result<T>> result_;
+  twist::stdlike::atomic<uint32_t> fired_{0};
 };
 
 }  // namespace detail
@@ -36,14 +30,17 @@ struct ResultWaiter {
 // Blocking
 template <typename T>
 wheels::Result<T> GetResult(Future<T> future) {
-  detail::ResultWaiter<T> result_waiter;
+  detail::OneShotEvent<T> one_shot_event;
+  std::optional<wheels::Result<T>> result;
 
-  std::move(future).Subscribe([&result_waiter](wheels::Result<T> input) {
-    result_waiter.Receive(std::move(input));
-  });
+  std::move(future).Subscribe(
+      [&one_shot_event, &result](wheels::Result<T> input) {
+        result = std::move(input);
+        one_shot_event.Fire();
+      });
 
-  result_waiter.Wait();
-  return result_waiter.GetResult();
+  one_shot_event.Wait();
+  return std::move(*result);
 }
 
 // Blocking

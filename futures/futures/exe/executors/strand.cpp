@@ -7,7 +7,7 @@ Strand::Strand(IExecutor& underlying) : underlying_(underlying) {
 }
 
 void Strand::Execute(TaskBase* task) {
-  if (tasks_.Push(task) == 0) {
+  if (!tasks_.Push(task)) {
     Submit();
   }
 }
@@ -21,13 +21,13 @@ void Strand::Submit() {
 void Strand::Step() {
   wheels::IntrusiveForwardList<TaskBase> batch;
   tasks_.Grab(batch);
-  size_t batch_sz = batch.Size();
   while (!batch.IsEmpty()) {
     auto task = batch.PopFront();
     task->Run();
     task->Discard();
   }
-  if (tasks_.Drain(batch_sz) != batch_sz) {
+  tasks_.Finish();
+  if (tasks_.NeedResubmit()) {
     Submit();
   }
 }

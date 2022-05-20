@@ -31,7 +31,7 @@ class FirstOfCombinator {
 
   auto MakeFuture() {
     auto [f, p] = MakeContract<T>();
-    promise_.template emplace(std::move(p));
+    promise_.emplace(std::move(p));
     return std::move(f);
   }
 

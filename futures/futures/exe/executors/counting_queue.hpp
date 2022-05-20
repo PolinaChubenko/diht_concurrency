@@ -23,6 +23,10 @@ class LockFreeStack {
     }
   }
 
+  bool IsEmpty() {
+    return top_.load() == nullptr;
+  }
+
   void Swap(LockFreeStack& other) {
     top_.store(other.top_.exchange(top_.load()));
   }
@@ -43,14 +47,13 @@ class LockFreeStack {
 
 class CountingQueue {
  public:
-  size_t Push(TaskBase* task) {
-    size_t initial_sz = counter_.fetch_add(1);
+  bool Push(TaskBase* task) {
     tasks_.Push(task);
-    return initial_sz;
+    return is_scheduled_.exchange(true);
   }
 
-  size_t Drain(size_t done) {
-    return counter_.fetch_sub(done);
+  void Finish() {
+    is_scheduled_.store(false);
   }
 
   void Grab(wheels::IntrusiveForwardList<TaskBase>& batch) {
@@ -59,9 +62,13 @@ class CountingQueue {
     cur_tasks.GrabReversed(batch);
   }
 
+  bool NeedResubmit() {
+    return !tasks_.IsEmpty() && !is_scheduled_.exchange(true);
+  }
+
  private:
   detail::LockFreeStack tasks_;
-  twist::stdlike::atomic<size_t> counter_{0};
+  twist::stdlike::atomic<bool> is_scheduled_{false};
 };
 
 }  // namespace exe::executors

@@ -44,7 +44,7 @@ class ThreadPool : public IExecutor {
 
  private:
   std::vector<twist::stdlike::thread> workers_;
-  UnboundedBlockingQueue<TaskBase> task_queue_;
+  UnboundedBlockingQueue task_queue_;
   Countdown task_counter_;
 };
 

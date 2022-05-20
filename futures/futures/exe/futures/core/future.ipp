@@ -58,7 +58,7 @@ auto Future<T>::Then(F continuation) && {
       }
     }
   };
-  ReleaseState()->SetCallback(std::move(callback));
+  std::move(*this).Subscribe(std::move(callback));
   return std::move(f);
 }
 
@@ -88,7 +88,7 @@ auto Future<T>::Then(F continuation) && {
       }
     }
   };
-  ReleaseState()->SetCallback(std::move(callback));
+  std::move(*this).Subscribe(std::move(callback));
   return std::move(f);
 }
 
@@ -108,7 +108,7 @@ template <typename F> requires ErrorHandler<F, T>
       std::move(p).Set(std::move(input));
     }
   };
-  ReleaseState()->SetCallback(std::move(callback));
+  std::move(*this).Subscribe(std::move(callback));
   return std::move(f);
 
 }

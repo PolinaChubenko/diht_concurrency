@@ -30,7 +30,7 @@ class AllCombinator {
         if (++inputs_ == collection_.size()) {
           std::vector<T> values;
           for (size_t i = 0; i < inputs_; ++i) {
-            values.template emplace_back(std::move(collection_[i].value()));
+            values.emplace_back(std::move(collection_[i].value()));
           }
           std::move(*promise_).SetValue(std::move(values));
           finished_ = true;
@@ -41,7 +41,7 @@ class AllCombinator {
 
   auto MakeFuture() {
     auto [f, p] = MakeContract<std::vector<T>>();
-    promise_.template emplace(std::move(p));
+    promise_.emplace(std::move(p));
     return std::move(f);
   }
 
